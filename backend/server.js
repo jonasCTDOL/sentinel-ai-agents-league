@@ -1,4 +1,8 @@
-require('dotenv').config();
+// ===============================
+// CARREGA .ENV CORRETAMENTE
+// ===============================
+require('dotenv').config({ path: '../.env' });
+
 // ===============================
 // IMPORTAÇÕES
 // ===============================
@@ -9,7 +13,6 @@ const cors = require("cors");
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
-
 // ===============================
 // CONFIGURAÇÃO DO APP
 // ===============================
@@ -18,32 +21,27 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-
 // ===============================
-// CONFIGURAÇÕES DAS IAs
+// CONFIGURAÇÕES
 // ===============================
-
-// 🔒 CHAVES SEGURAS (via .env)
 const GEMINI_KEY = process.env.GEMINI_KEY;
 const AZURE_KEY = process.env.AZURE_KEY;
 
-// ✅ CONFIRMADAS
 const AZURE_ENDPOINT = "https://sentinel-ai-jonas-01-resource.openai.azure.com";
 const AZURE_DEPLOYMENT = "gpt-oss-120b";
 
+// ===============================
+// FUNÇÃO AUXILIAR (força JSON)
+// ===============================
+function garantirStringJSON(resposta) {
+  if (!resposta) return null;
 
-// ===============================
-// FUNÇÃO AUXILIAR (VALIDAR JSON)
-// ===============================
-function isJSON(str) {
-  try {
-    JSON.parse(str);
-    return true;
-  } catch {
-    return false;
-  }
+  // se já for string, retorna direto
+  if (typeof resposta === "string") return resposta;
+
+  // se for objeto → converte
+  return JSON.stringify(resposta);
 }
-
 
 // ===============================
 // ROTA PRINCIPAL
@@ -109,7 +107,7 @@ OCORRÊNCIA: ${texto}`
     }
 
     // =========================
-    // 🟣 AZURE
+    // 🟣 AZURE (CORRIGIDO)
     // =========================
     else if (modelo === "azure") {
 
@@ -122,62 +120,63 @@ OCORRÊNCIA: ${texto}`
             "api-key": AZURE_KEY
           },
           body: JSON.stringify({
+
             messages: [
               {
                 role: "system",
                 content: `Você é um agente de segurança pública.
 
-Responda SOMENTE em JSON com:
-tipo, risco, acoes, justificativa.
+Responda EXCLUSIVAMENTE em JSON válido:
 
-Use análise proporcional e escalonamento.`
+{
+  "tipo": "",
+  "risco": "",
+  "acoes": [],
+  "justificativa": ""
+}
+
+Não escreva nada fora do JSON.`
               },
               {
                 role: "user",
                 content: texto
               }
-            ]
+            ],
+
+            response_format: { type: "json_object" }
+
           })
         }
       );
 
       const data = await response.json();
 
-      console.log("Azure:", data);
+      console.log("Azure conteúdo:", data?.choices?.[0]?.message?.content);
 
-      resultado = data?.choices?.[0]?.message?.content;
+      let respostaAzure = data?.choices?.[0]?.message?.content;
+
+      resultado = garantirStringJSON(respostaAzure);
     }
 
     // =========================
     // VALIDAÇÃO FINAL
     // =========================
     if (!resultado) {
-      return res.status(500).json({
-        erro: "Resposta vazia da IA"
-      });
-    }
-
-    // garante retorno JSON válido
-    if (!isJSON(resultado)) {
-      console.warn("IA não retornou JSON puro");
-      return res.json({ result: resultado });
+      return res.status(500).json({ erro: "Resposta vazia da IA" });
     }
 
     res.json({ result: resultado });
 
   } catch (erro) {
 
-    console.error("Erro geral:", erro);
+    console.error("Erro:", erro);
 
-    res.status(500).json({
-      erro: "Erro interno no servidor"
-    });
+    res.status(500).json({ erro: "Erro interno" });
   }
 });
 
-
 // ===============================
-// START SERVIDOR
+// START
 // ===============================
 app.listen(3000, () => {
   console.log("🚀 Servidor rodando em http://localhost:3000");
