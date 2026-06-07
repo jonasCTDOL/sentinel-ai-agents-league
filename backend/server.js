@@ -106,11 +106,12 @@ OCORRÊNCIA: ${texto}`
     }
 
     // =========================
-    // AZURE OPENAI ✅ (OFICIAL)
+    // AZURE FOUNDARY ✅ (CORRIGIDO)
     // =========================
     else if (modelo === "azure") {
+
       const response = await fetch(
-        `${AZURE_ENDPOINT}/openai/deployments/${AZURE_DEPLOYMENT}/chat/completions?api-version=2024-02-15-preview`,
+        `${AZURE_ENDPOINT}/models/${AZURE_DEPLOYMENT}/invoke?api-version=2024-05-01-preview`,
         {
           method: "POST",
           headers: {
@@ -118,31 +119,28 @@ OCORRÊNCIA: ${texto}`
             "api-key": AZURE_KEY
           },
           body: JSON.stringify({
-            messages: [
-              {
-                role: "system",
-                content: `Você é um agente de segurança pública.
-
-Responda EXCLUSIVAMENTE em JSON:
+            input_data: {
+              input_string: [
+                {
+                  role: "user",
+                  content: `Responda EXCLUSIVAMENTE em JSON:
 
 {
   "tipo": "",
   "risco": "",
   "acoes": [],
   "justificativa": ""
-}`
-              },
-              {
-                role: "user",
-                content: texto
-              }
-            ],
-            temperature: 0.2
+}
+
+OCORRÊNCIA: ${texto}`
+                }
+              ]
+            }
           })
         }
       );
 
-      // 🔥 LOG REAL DO ERRO
+      // 🔥 erro detalhado
       if (!response.ok) {
         const erroTexto = await response.text();
         console.error("❌ ERRO AZURE:", erroTexto);
@@ -157,19 +155,29 @@ Responda EXCLUSIVAMENTE em JSON:
 
       console.log("✅ RESPOSTA AZURE:", JSON.stringify(data, null, 2));
 
-      const respostaAzure = data?.choices?.[0]?.message?.content;
+      // 🔥 formatos possíveis do Foundry
+      let resposta =
+        data?.output_data?.[0]?.content ||
+        data?.output_text ||
+        JSON.stringify(data);
 
-      if (!respostaAzure) {
-        throw new Error("Azure não retornou conteúdo");
+      if (!resposta) {
+        throw new Error("Azure não retornou conteúdo válido");
       }
 
-      resultado = garantirStringJSON(respostaAzure);
+      resultado = garantirStringJSON(resposta);
     }
 
+    // =========================
+    // MODELO INVÁLIDO
+    // =========================
     else {
       return res.status(400).json({ erro: "Modelo inválido" });
     }
 
+    // =========================
+    // VALIDAÇÃO FINAL
+    // =========================
     if (!resultado) {
       return res.status(500).json({
         erro: "IA não retornou resultado válido"
