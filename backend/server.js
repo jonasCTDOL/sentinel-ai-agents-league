@@ -10,20 +10,23 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 
-// fetch compatível com Node
+// fetch compatível com Node (para chamadas HTTP)
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
 // ===============================
-// CONFIGURAÇÃO DO SERVIDOR
+// INICIALIZAÇÃO DO SERVIDOR
 // ===============================
 const app = express();
 
+// Permite chamadas externas (frontend → backend)
 app.use(cors());
+
+// Permite receber JSON no body
 app.use(express.json());
 
 // ===============================
-// SERVE FRONTEND
+// SERVE O FRONTEND
 // ===============================
 app.use(express.static(path.join(__dirname, "../frontend")));
 
@@ -35,15 +38,17 @@ app.get("/", (req, res) => {
 // VARIÁVEIS DE AMBIENTE
 // ===============================
 const GEMINI_KEY = process.env.GEMINI_KEY;
+
+// 🔑 AZURE
 const AZURE_KEY = process.env.AZURE_KEY;
 const AZURE_ENDPOINT = process.env.AZURE_ENDPOINT;
 const AZURE_DEPLOYMENT = process.env.AZURE_DEPLOYMENT;
 
-// DEBUG
+// Logs para debug
 console.log("✅ Gemini:", GEMINI_KEY ? "OK" : "MISSING");
 console.log("✅ Azure Key:", AZURE_KEY ? "OK" : "MISSING");
-console.log("✅ Endpoint:", AZURE_ENDPOINT);
-console.log("✅ Deployment:", AZURE_DEPLOYMENT);
+console.log("✅ Azure Endpoint:", AZURE_ENDPOINT);
+console.log("✅ Azure Deployment:", AZURE_DEPLOYMENT);
 
 // ===============================
 // FUNÇÃO AUXILIAR
@@ -55,7 +60,7 @@ function garantirStringJSON(resposta) {
 }
 
 // ===============================
-// ROTA API
+// ROTA PRINCIPAL DA API
 // ===============================
 app.post("/analisar", async (req, res) => {
   const { texto, modelo } = req.body;
@@ -63,6 +68,7 @@ app.post("/analisar", async (req, res) => {
   console.log("📩 Texto:", texto);
   console.log("🤖 Modelo:", modelo);
 
+  // validações
   if (!texto) {
     return res.status(400).json({ erro: "Texto não informado" });
   }
@@ -75,7 +81,7 @@ app.post("/analisar", async (req, res) => {
     let resultado = "";
 
     // =========================
-    // GEMINI
+    // GEMINI (GOOGLE)
     // =========================
     if (modelo === "gemini") {
       const response = await fetch(
@@ -109,26 +115,29 @@ OCORRÊNCIA: ${texto}`
         }
       );
 
+      // tratamento de erro
       if (!response.ok) {
         const erroTexto = await response.text();
         console.error("❌ Erro Gemini:", erroTexto);
 
         return res.status(500).json({
-          erro: "Erro Gemini",
+          erro: "Erro na API Gemini",
           detalhe: erroTexto
         });
       }
 
       const data = await response.json();
+
       resultado = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     }
 
     // =========================
-    // AZURE (CORRIGIDO)
+    // AZURE (FOUNDY / OSS MODEL)
     // =========================
     else if (modelo === "azure") {
       const response = await fetch(
-        `${AZURE_ENDPOINT}/openai/deployments/${AZURE_DEPLOYMENT}/chat/completions?api-version=2024-02-15-preview`,
+        // 🔥 ENDPOINT CORRETO PARA MODELOS OSS
+        `${AZURE_ENDPOINT}/models/${AZURE_DEPLOYMENT}/invoke?api-version=2024-05-01-preview`,
         {
           method: "POST",
           headers: {
@@ -136,10 +145,11 @@ OCORRÊNCIA: ${texto}`
             "api-key": AZURE_KEY
           },
           body: JSON.stringify({
-            messages: [
-              {
-                role: "user",
-                content: `Responda EXCLUSIVAMENTE em JSON válido:
+            input_data: {
+              input_string: [
+                {
+                  role: "user",
+                  content: `Responda EXCLUSIVAMENTE em JSON válido:
 
 {
   "tipo": "",
@@ -149,10 +159,9 @@ OCORRÊNCIA: ${texto}`
 }
 
 OCORRÊNCIA: ${texto}`
-              }
-            ],
-            temperature: 0.2,
-            max_tokens: 800
+                }
+              ]
+            }
           })
         }
       );
@@ -160,6 +169,7 @@ OCORRÊNCIA: ${texto}`
       // ✅ LOG COMPLETO DO ERRO
       if (!response.ok) {
         const erroTexto = await response.text();
+
         console.error("❌ ERRO AZURE DETALHADO:", erroTexto);
 
         return res.status(500).json({
@@ -172,12 +182,11 @@ OCORRÊNCIA: ${texto}`
 
       console.log("✅ RESPOSTA AZURE:", JSON.stringify(data, null, 2));
 
-      let respostaAzure = data?.choices?.[0]?.message?.content;
-
-      // ✅ fallback importante (modelo OSS)
-      if (!respostaAzure && data?.choices?.[0]?.text) {
-        respostaAzure = data.choices[0].text;
-      }
+      // 🔥 TRATAMENTO FLEXÍVEL (OSS varia formato)
+      let respostaAzure =
+        data?.output_data?.[0]?.content || // formato comum
+        data?.output_text ||              // fallback
+        JSON.stringify(data);             // último fallback
 
       if (!respostaAzure) {
         throw new Error("Azure não retornou conteúdo válido");
@@ -190,7 +199,9 @@ OCORRÊNCIA: ${texto}`
     // MODELO INVÁLIDO
     // =========================
     else {
-      return res.status(400).json({ erro: "Modelo inválido" });
+      return res.status(400).json({
+        erro: "Modelo inválido"
+      });
     }
 
     // =========================
@@ -202,6 +213,7 @@ OCORRÊNCIA: ${texto}`
       });
     }
 
+    // resposta final
     res.json({ result: resultado });
 
   } catch (erro) {
@@ -214,7 +226,7 @@ OCORRÊNCIA: ${texto}`
 });
 
 // ===============================
-// START
+// START DO SERVIDOR
 // ===============================
 const PORT = process.env.PORT || 3000;
 
