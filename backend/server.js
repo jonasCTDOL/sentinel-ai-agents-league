@@ -36,16 +36,14 @@ app.get("/", (req, res) => {
 // ===============================
 const GEMINI_KEY = process.env.GEMINI_KEY;
 const AZURE_KEY = process.env.AZURE_KEY;
-
-// 🔥 IMPORTANTE: troque pelo SEU deployment real
 const AZURE_ENDPOINT = process.env.AZURE_ENDPOINT;
 const AZURE_DEPLOYMENT = process.env.AZURE_DEPLOYMENT;
 
-// log para debug
+// DEBUG
 console.log("✅ Gemini:", GEMINI_KEY ? "OK" : "MISSING");
 console.log("✅ Azure Key:", AZURE_KEY ? "OK" : "MISSING");
-console.log("✅ Azure Endpoint:", AZURE_ENDPOINT);
-console.log("✅ Azure Deployment:", AZURE_DEPLOYMENT);
+console.log("✅ Endpoint:", AZURE_ENDPOINT);
+console.log("✅ Deployment:", AZURE_DEPLOYMENT);
 
 // ===============================
 // FUNÇÃO AUXILIAR
@@ -116,18 +114,17 @@ OCORRÊNCIA: ${texto}`
         console.error("❌ Erro Gemini:", erroTexto);
 
         return res.status(500).json({
-          erro: "Erro na API Gemini",
+          erro: "Erro Gemini",
           detalhe: erroTexto
         });
       }
 
       const data = await response.json();
-
       resultado = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     }
 
     // =========================
-    // AZURE
+    // AZURE (CORRIGIDO)
     // =========================
     else if (modelo === "azure") {
       const response = await fetch(
@@ -141,43 +138,50 @@ OCORRÊNCIA: ${texto}`
           body: JSON.stringify({
             messages: [
               {
-                role: "system",
-                content: `Você é um agente de segurança pública.
-
-Analise ocorrências e responda EXCLUSIVAMENTE em JSON válido:
+                role: "user",
+                content: `Responda EXCLUSIVAMENTE em JSON válido:
 
 {
   "tipo": "",
   "risco": "",
   "acoes": [],
   "justificativa": ""
-}`
-              },
-              {
-                role: "user",
-                content: texto
+}
+
+OCORRÊNCIA: ${texto}`
               }
             ],
-            temperature: 0.2
+            temperature: 0.2,
+            max_tokens: 800
           })
         }
       );
 
+      // ✅ LOG COMPLETO DO ERRO
       if (!response.ok) {
         const erroTexto = await response.text();
-        console.error("❌ Erro Azure DETALHADO:", erroTexto);
+        console.error("❌ ERRO AZURE DETALHADO:", erroTexto);
 
         return res.status(500).json({
-          erro: "Erro na API Azure",
+          erro: "Erro Azure",
           detalhe: erroTexto
         });
       }
 
       const data = await response.json();
 
-      console.log("✅ Azure RAW:", JSON.stringify(data, null, 2));
+      console.log("✅ RESPOSTA AZURE:", JSON.stringify(data, null, 2));
 
-      const respostaAzure = data?.choices?.[0]?.message?.content;
+      let respostaAzure = data?.choices?.[0]?.message?.content;
+
+      // ✅ fallback importante (modelo OSS)
+      if (!respostaAzure && data?.choices?.[0]?.text) {
+        respostaAzure = data.choices[0].text;
+      }
+
+      if (!respostaAzure) {
+        throw new Error("Azure não retornou conteúdo válido");
+      }
 
       resultado = garantirStringJSON(respostaAzure);
     }
@@ -201,16 +205,16 @@ Analise ocorrências e responda EXCLUSIVAMENTE em JSON válido:
     res.json({ result: resultado });
 
   } catch (erro) {
-    console.error("💥 Erro geral:", erro);
+    console.error("💥 ERRO GERAL:", erro);
 
     res.status(500).json({
-      erro: "Erro interno do servidor"
+      erro: "Erro ao processar requisição"
     });
   }
 });
 
 // ===============================
-// START SERVIDOR
+// START
 // ===============================
 const PORT = process.env.PORT || 3000;
 
