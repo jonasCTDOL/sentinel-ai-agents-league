@@ -106,24 +106,26 @@ OCORRÊNCIA: ${texto}`
     }
 
     // =========================
-    // AZURE FOUNDARY ✅ (CORRIGIDO)
+    // AZURE FOUNDRY ✅ (CORRIGIDO)
     // =========================
     else if (modelo === "azure") {
+      // Garante que não existem barras duplicadas no final da URL base
+      const baseEndpoint = AZURE_ENDPOINT.endsWith("/") ? AZURE_ENDPOINT.slice(0, -1) : AZURE_ENDPOINT;
+      
+      // Ajustado para o padrão oficial Chat Completions do Azure AI Foundry / Serverless
+      const urlCompleta = `${baseEndpoint}/chat/completions?api-version=2024-05-01-preview`;
 
-      const response = await fetch(
-        `${AZURE_ENDPOINT}/models/${AZURE_DEPLOYMENT}/invoke?api-version=2024-05-01-preview`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "api-key": AZURE_KEY
-          },
-          body: JSON.stringify({
-            input_data: {
-              input_string: [
-                {
-                  role: "user",
-                  content: `Responda EXCLUSIVAMENTE em JSON:
+      const response = await fetch(urlCompleta, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": AZURE_KEY
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: `Responda EXCLUSIVAMENTE em JSON:
 
 {
   "tipo": "",
@@ -133,36 +135,32 @@ OCORRÊNCIA: ${texto}`
 }
 
 OCORRÊNCIA: ${texto}`
-                }
-              ]
             }
-          })
-        }
-      );
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.1
+        })
+      });
 
-      // 🔥 erro detalhado
+      // Se a resposta falhar, captura o log exato da Azure no terminal do Render
       if (!response.ok) {
         const erroTexto = await response.text();
-        console.error("❌ ERRO AZURE:", erroTexto);
+        console.error("❌ ERRO DETALHADO AZURE:", erroTexto);
 
-        return res.status(500).json({
-          erro: "Erro Azure",
+        return res.status(response.status).json({
+          erro: "Erro retornado pela API da Azure",
           detalhe: erroTexto
         });
       }
 
       const data = await response.json();
-
       console.log("✅ RESPOSTA AZURE:", JSON.stringify(data, null, 2));
 
-      // 🔥 formatos possíveis do Foundry
-      let resposta =
-        data?.output_data?.[0]?.content ||
-        data?.output_text ||
-        JSON.stringify(data);
+      // Extração padrão seguindo a estrutura Chat Completions (choices -> message -> content)
+      let resposta = data?.choices?.[0]?.message?.content;
 
       if (!resposta) {
-        throw new Error("Azure não retornou conteúdo válido");
+        throw new Error("Azure não retornou conteúdo válido na estrutura 'choices[0].message.content'");
       }
 
       resultado = garantirStringJSON(resposta);
@@ -190,7 +188,8 @@ OCORRÊNCIA: ${texto}`
     console.error("💥 ERRO GERAL:", erro);
 
     res.status(500).json({
-      erro: "Erro ao processar requisição"
+      erro: "Erro ao processar requisição",
+      detalhe: erro.message
     });
   }
 });
