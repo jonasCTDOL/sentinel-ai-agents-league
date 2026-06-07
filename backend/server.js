@@ -1,31 +1,36 @@
 // ===============================
 // CARREGA VARIÁVEIS DE AMBIENTE
 // ===============================
-// Funciona tanto local quanto Docker e Web
 require('dotenv').config();
-
 
 // ===============================
 // IMPORTAÇÕES
 // ===============================
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
 // fetch compatível com Node
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
-
 
 // ===============================
 // CONFIGURAÇÃO DO SERVIDOR
 // ===============================
 const app = express();
 
-// permite requisições do frontend (CORS)
+// permite requisições externas (API)
 app.use(cors());
 
 // permite receber JSON no body
 app.use(express.json());
+
+
+// ===============================
+// SERVE FRONTEND (HTML, CSS, JS)
+// ===============================
+// tudo que está em /frontend será servido automaticamente
+app.use(express.static(path.join(__dirname, "../frontend")));
 
 
 // ===============================
@@ -34,36 +39,32 @@ app.use(express.json());
 const GEMINI_KEY = process.env.GEMINI_KEY;
 const AZURE_KEY = process.env.AZURE_KEY;
 
-// endpoint Azure
 const AZURE_ENDPOINT = "https://sentinel-ai-jonas-01-resource.openai.azure.com";
-
-// nome do deployment Azure
 const AZURE_DEPLOYMENT = "gpt-oss-120b";
 
 
 // ===============================
 // FUNÇÃO AUXILIAR
 // ===============================
-// garante que a resposta sempre será string JSON
+// garante retorno sempre como string JSON
 function garantirStringJSON(resposta) {
   if (!resposta) return null;
-
   if (typeof resposta === "string") return resposta;
-
   return JSON.stringify(resposta);
 }
 
 
 // ===============================
-// ROTA TESTE (OPCIONAL)
+// ROTA PRINCIPAL (FRONTEND)
 // ===============================
+// quando acessar "/" carrega o index.html
 app.get("/", (req, res) => {
-  res.send("✅ Sentinel AI rodando com sucesso");
+  res.sendFile(path.join(__dirname, "../frontend/index.html"));
 });
 
 
 // ===============================
-// ROTA PRINCIPAL
+// ROTA DA API
 // ===============================
 app.post("/analisar", async (req, res) => {
 
@@ -72,9 +73,7 @@ app.post("/analisar", async (req, res) => {
   console.log("Texto:", texto);
   console.log("Modelo:", modelo);
 
-  // =========================
-  // VALIDAÇÃO DE ENTRADA
-  // =========================
+  // valida entradas
   if (!texto) {
     return res.status(400).json({ erro: "Texto não informado" });
   }
@@ -85,7 +84,7 @@ app.post("/analisar", async (req, res) => {
 
   if (!GEMINI_KEY || !AZURE_KEY) {
     return res.status(500).json({
-      erro: "Chaves de API não configuradas (.env)"
+      erro: "Chaves de API não configuradas"
     });
   }
 
@@ -94,7 +93,7 @@ app.post("/analisar", async (req, res) => {
     let resultado = "";
 
     // =========================
-    // 🔵 GEMINI
+    // GEMINI
     // =========================
     if (modelo === "gemini") {
 
@@ -102,9 +101,7 @@ app.post("/analisar", async (req, res) => {
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [
               {
@@ -141,9 +138,8 @@ OCORRÊNCIA: ${texto}`
       resultado = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     }
 
-
     // =========================
-    // 🟣 AZURE
+    // AZURE
     // =========================
     else if (modelo === "azure") {
 
@@ -192,28 +188,17 @@ Responda EXCLUSIVAMENTE em JSON válido:
       resultado = garantirStringJSON(respostaAzure);
     }
 
-
-    // =========================
-    // MODELO INVÁLIDO
-    // =========================
+    // modelo inválido
     else {
       return res.status(400).json({ erro: "Modelo inválido" });
     }
 
-
-    // =========================
-    // VALIDA RESULTADO FINAL
-    // =========================
     if (!resultado) {
       return res.status(500).json({
         erro: "A IA não retornou resultado válido"
       });
     }
 
-
-    // =========================
-    // RESPOSTA FINAL
-    // =========================
     res.json({ result: resultado });
 
   } catch (erro) {
@@ -228,7 +213,7 @@ Responda EXCLUSIVAMENTE em JSON válido:
 
 
 // ===============================
-// START DO SERVIDOR (LOCAL + WEB)
+// START DO SERVIDOR
 // ===============================
 const PORT = process.env.PORT || 3000;
 
