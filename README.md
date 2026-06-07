@@ -1,21 +1,44 @@
 # 🛡️ Sentinel AI
 
-Agente Inteligente de Análise de Ocorrências orientado à segurança pública.
+> From raw incident description to structured operational decision support — in seconds.
 
-O sistema analisa descrições de ocorrências e gera, em tempo real, uma avaliação estruturada com classificação de risco, ações recomendadas e justificativa técnica.
+Sistema inteligente de análise de ocorrências que transforma linguagem natural em decisões operacionais estruturadas, utilizando múltiplos modelos de Inteligência Artificial.
+
+---
+
+## 🌐 Acesso Online
+
+A aplicação já está disponível publicamente:
+
+https://sentinel-ai-agents-league.onrender.com
+
+---
+
+## 🎯 Visão Geral
+
+O Sentinel AI é um agente inteligente capaz de interpretar ocorrências textuais e gerar, em tempo real:
+
+- Classificação de risco
+- Ações recomendadas
+- Justificativa técnica estruturada
+- Respostas padronizadas em JSON
+
+O sistema atua como um **apoio à decisão**, não apenas como um gerador de respostas.
 
 ---
 
 ## 🚀 Funcionalidades
 
-- Análise de ocorrências em linguagem natural
-- Classificação de risco (Baixo, Médio, Alto, Altíssimo)
-- Definição de ações com escalonamento progressivo
-- Justificativa técnica das decisões
+- Entrada de ocorrências em linguagem natural
+- Classificação automática de risco (Baixo, Médio, Alto, Altíssimo)
+- Geração de ações com escalonamento progressivo
+- Justificativa baseada em análise contextual
 - Interface visual interativa
-- Suporte multi-IA:
+- Integração com múltiplos modelos de IA:
   - Google Gemini
   - Microsoft Azure OpenAI
+- Execução em tempo real
+- Retorno estruturado em JSON
 
 ---
 
@@ -28,6 +51,12 @@ Backend (Node.js + Express)
 Integração com IA  
 → Google Gemini  
 → Azure OpenAI  
+↓  
+Containerização  
+→ Docker  
+↓  
+Deploy  
+→ Render (Cloud)
 
 ---
 
@@ -38,6 +67,7 @@ Integração com IA
 - JavaScript
 - HTML5
 - CSS3
+- Docker
 - Google Gemini API
 - Azure OpenAI
 - Dotenv
@@ -51,27 +81,30 @@ sentinel-ai-agents-league/
 │   └── server.js  
 ├── frontend/  
 │   ├── index.html  
-│   ├── style.css  
-│   └── script.js  
-├── .env  
-├── .gitignore  
+│   ├── script.js  
+│   └── style.css  
+├── Dockerfile  
+├── docker-compose.yml  
 ├── package.json  
+├── .env (apenas local)  
 └── README.md  
 
 ---
 
 ## 🔐 Variáveis de Ambiente
 
-Crie um arquivo `.env` na raiz:
+Arquivo `.env` local:
 
 GEMINI_KEY=sua_chave_gemini  
 AZURE_KEY=sua_chave_azure  
 
-Nunca compartilhe suas chaves em repositórios públicos.
+⚠️ Nunca versionar esse arquivo.
+
+No ambiente de produção (Render), as variáveis são configuradas diretamente no painel.
 
 ---
 
-## ▶️ Como Executar
+## ▶️ Execução Local
 
 ### Backend
 
@@ -79,18 +112,25 @@ cd backend
 npm install  
 node server.js  
 
-Servidor disponível em:  
+Servidor:
+
 http://localhost:3000  
 
 ---
 
 ### Frontend
 
-Abra o arquivo:
+Abrir diretamente:
 
 frontend/index.html  
 
-Ou utilize Live Server.
+ou usar Live Server.
+
+---
+
+## 🐳 Execução com Docker
+
+docker-compose up --build  
 
 ---
 
@@ -98,51 +138,65 @@ Ou utilize Live Server.
 
 Entrada:
 
-suspeitos armados em mercado  
+suspeitos armados em escola  
 
-Saída esperada:
+Saída:
 
 {
   "tipo": "Ocorrência com suspeitos armados",
   "risco": "Alto",
   "acoes": [
-    "Avaliação inicial da situação",
-    "Presença policial preventiva",
-    "Isolamento do ambiente",
+    "Avaliação inicial",
+    "Presença preventiva",
+    "Isolamento do local",
     "Negociação",
     "Acionamento de unidades especializadas"
   ],
-  "justificativa": "A presença de suspeitos armados representa risco elevado à população e exige resposta escalonada."
+  "justificativa": "Risco elevado à vida exige resposta escalonada e controlada."
 }
 
 ---
 
 ## 🎯 Diferenciais
 
-- Estrutura de decisão baseada em escalonamento
-- Padronização em JSON estruturado
-- Interface clara e funcional
-- Integração com múltiplos modelos de IA
-- Foco em aplicação real em segurança pública
+- Transformação de texto em decisão operacional
+- Estrutura de escalonamento progressivo
+- Resposta padronizada e reutilizável (JSON)
+- Multi-model AI (resiliência e flexibilidade)
+- Arquitetura completa (frontend + backend + cloud)
+- Deploy real em ambiente de produção
 
 ---
 
 ## 📌 Aplicações
 
 - Centros de comando e controle
+- Segurança pública
 - Atendimento emergencial
-- Apoio à decisão policial
-- Simulações e treinamento
-- Análise estruturada de ocorrências
+- Treinamento e simulações
+- Sistemas de apoio à decisão
 
 ---
 
 ## 🏆 Status do Projeto
 
 - Funcional
+- Online
 - Integrado com IA
+- Containerizado com Docker
+- Deploy em nuvem concluído
 - Pronto para demonstração
-- Estruturado para evolução
+
+---
+
+## 🚀 Roadmap
+
+- Dashboard com métricas
+- Histórico de ocorrências
+- Geolocalização
+- Interface mobile
+- API pública documentada
+- Comparação entre modelos de IA
 
 ---
 
@@ -152,16 +206,7 @@ Jonas Henrique Spindler
 
 ---
 
-## 🚀 Melhorias Futuras
+## 💥 Destaque
 
-- Dashboard com métricas
-- Histórico de ocorrências
-- Integração com mapas
-- Versão mobile
-- Deploy em nuvem
-
----
-
-## 📄 Licença
-
-Projeto desenvolvido para fins educacionais e experimentais.
+The system does not automate force — it supports responsible, structured decision-making.
+``
