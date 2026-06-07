@@ -1,5 +1,5 @@
 // ===============================
-// CARREGA .ENV CORRETAMENTE
+// CARREGA VARIÁVEIS DE AMBIENTE
 // ===============================
 require('dotenv').config({ path: '../.env' });
 
@@ -9,12 +9,11 @@ require('dotenv').config({ path: '../.env' });
 const express = require("express");
 const cors = require("cors");
 
-// fetch compatível com Node
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
 // ===============================
-// CONFIGURAÇÃO DO APP
+// CONFIGURAÇÃO DO SERVIDOR
 // ===============================
 const app = express();
 
@@ -31,15 +30,11 @@ const AZURE_ENDPOINT = "https://sentinel-ai-jonas-01-resource.openai.azure.com";
 const AZURE_DEPLOYMENT = "gpt-oss-120b";
 
 // ===============================
-// FUNÇÃO AUXILIAR (força JSON)
+// FUNÇÃO AUXILIAR
 // ===============================
 function garantirStringJSON(resposta) {
   if (!resposta) return null;
-
-  // se já for string, retorna direto
   if (typeof resposta === "string") return resposta;
-
-  // se for objeto → converte
   return JSON.stringify(resposta);
 }
 
@@ -57,12 +52,22 @@ app.post("/analisar", async (req, res) => {
     return res.status(400).json({ erro: "Texto não informado" });
   }
 
+  if (!modelo) {
+    return res.status(400).json({ erro: "Modelo não informado" });
+  }
+
+  if (!GEMINI_KEY || !AZURE_KEY) {
+    return res.status(500).json({
+      erro: "Chaves de API não configuradas (.env)"
+    });
+  }
+
   try {
 
     let resultado = "";
 
     // =========================
-    // 🔵 GEMINI
+    // GEMINI
     // =========================
     if (modelo === "gemini") {
 
@@ -70,9 +75,7 @@ app.post("/analisar", async (req, res) => {
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents: [
               {
@@ -99,15 +102,16 @@ OCORRÊNCIA: ${texto}`
         }
       );
 
+      if (!response.ok) {
+        return res.status(500).json({ erro: "Erro na API Gemini" });
+      }
+
       const data = await response.json();
-
-      console.log("Gemini:", data);
-
       resultado = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     }
 
     // =========================
-    // 🟣 AZURE (CORRIGIDO)
+    // AZURE
     // =========================
     else if (modelo === "azure") {
 
@@ -120,7 +124,6 @@ OCORRÊNCIA: ${texto}`
             "api-key": AZURE_KEY
           },
           body: JSON.stringify({
-
             messages: [
               {
                 role: "system",
@@ -133,50 +136,53 @@ Responda EXCLUSIVAMENTE em JSON válido:
   "risco": "",
   "acoes": [],
   "justificativa": ""
-}
-
-Não escreva nada fora do JSON.`
+}`
               },
               {
                 role: "user",
                 content: texto
               }
             ],
-
             response_format: { type: "json_object" }
-
           })
         }
       );
 
+      if (!response.ok) {
+        return res.status(500).json({ erro: "Erro na API Azure" });
+      }
+
       const data = await response.json();
-
-      console.log("Azure conteúdo:", data?.choices?.[0]?.message?.content);
-
-      let respostaAzure = data?.choices?.[0]?.message?.content;
+      const respostaAzure = data?.choices?.[0]?.message?.content;
 
       resultado = garantirStringJSON(respostaAzure);
     }
 
-    // =========================
-    // VALIDAÇÃO FINAL
-    // =========================
+    else {
+      return res.status(400).json({ erro: "Modelo inválido" });
+    }
+
+    // ✅ CORREÇÃO FINAL AQUI
     if (!resultado) {
-      return res.status(500).json({ erro: "Resposta vazia da IA" });
+      return res.status(500).json({
+        erro: "A IA não retornou resultado válido"
+      });
     }
 
     res.json({ result: resultado });
 
   } catch (erro) {
 
-    console.error("Erro:", erro);
+    console.error("Erro geral:", erro);
 
-    res.status(500).json({ erro: "Erro interno" });
+    res.status(500).json({
+      erro: "Erro interno do servidor"
+    });
   }
 });
 
 // ===============================
-// START
+// START SERVIDOR
 // ===============================
 app.listen(3000, () => {
   console.log("🚀 Servidor rodando em http://localhost:3000");
