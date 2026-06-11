@@ -1,59 +1,118 @@
 // ==============================================================================
 // 1. CARREGAMENTO DE VARIÁVEIS DE AMBIENTE
 // ==============================================================================
-// Lê o arquivo .env durante o desenvolvimento local. 
-// No Render, as variáveis configuradas no painel sobrescrevem isso automaticamente.
 require("dotenv").config();
 
-// ===============================
-// IMPORTAÇÕES E CONFIGURAÇÕES
-// ===============================
+// ==============================================================================
+// 2. IMPORTAÇÕES
+// ==============================================================================
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const fetch = require("node-fetch");
 
+// ==============================================================================
+// 3. CONFIGURAÇÃO DO SERVIDOR
+// ==============================================================================
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../frontend")));
 
-// ===============================
-// CHAVES E ENDPOINTS
-// ===============================
+// ==============================================================================
+// 4. CONFIGURAÇÃO DE CHAVES E ENDPOINTS
+// ==============================================================================
 const GEMINI_KEY = process.env.GEMINI_KEY;
 const AZURE_KEY = process.env.AZURE_KEY;
 
 const AZURE_ENDPOINT = "https://sentinel-ai-jonas-01-resource.openai.azure.com";
 const AZURE_DEPLOYMENT = "gpt-oss-120b";
 
-// ===============================
-// ROTA PRINCIPAL (FRONTEND)
-// ===============================
+// ==============================================================================
+// 5. PROMPT AVANÇADO (AGENTE MULTI-AGENTE)
+// ==============================================================================
+const SYSTEM_PROMPT = `
+Você é um sistema multi-agente de inteligência e tomada de decisão em segurança pública.
+
+Você opera em três etapas:
+1. Planejamento
+2. Análise
+3. Decisão
+
+Para cada ocorrência:
+- identifique tipo
+- avalie risco (Baixo, Médio, Alto, Altíssimo)
+- defina ações com escalonamento progressivo
+- produza justificativa estruturada
+
+ESCALONAMENTO:
+1. Avaliação inicial
+2. Presença preventiva
+3. Isolamento
+4. Negociação
+5. Unidades especializadas (somente se necessário)
+
+RESTRIÇÕES:
+- NÃO usar nomes de unidades específicas (PM, BOPE, etc.)
+- NÃO usar linguagem militarizada
+- NÃO iniciar com ação tática
+- NÃO sugerir força letal como primeira opção
+- NÃO pular etapas
+
+REQUISITO CRÍTICO DE JUSTIFICATIVA:
+
+A justificativa DEVE seguir EXATAMENTE esta estrutura:
+
+"A compreensão inicial identifica [...]. A análise contextual indica [...]. Com base nessa avaliação progressiva, a decisão [...]"
+
+Se não seguir essa estrutura, a resposta é inválida.
+
+FORMATO (OBRIGATÓRIO - JSON):
+
+{
+  "tipo": "",
+  "risco": "",
+  "acoes": [],
+  "justificativa": ""
+}
+`;
+
+// ==============================================================================
+// 6. ROTA FRONTEND
+// ==============================================================================
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../frontend/index.html"));
 });
 
-// ===============================
-// ROTA DA API - PROCESSAMENTO TÁTICO
-// ===============================
+// ==============================================================================
+// 7. ROTA PRINCIPAL DA API
+// ==============================================================================
 app.post("/analisar", async (req, res) => {
   const { texto, modelo } = req.body;
 
+  // ======================================
+  // VALIDAÇÃO INICIAL
+  // ======================================
   if (!texto || !modelo) {
-    return res.status(400).json({ erro: "Texto ou modelo não informado." });
+    return res.status(400).json({
+      erro: "Texto ou modelo não informado."
+    });
   }
 
   if (!GEMINI_KEY || !AZURE_KEY) {
-    return res.status(500).json({ erro: "Chaves de API ausentes no container." });
+    return res.status(500).json({
+      erro: "Chaves de API ausentes no servidor."
+    });
   }
 
   try {
     let resultado = "";
 
-    // =========================
-    // ROTEAMENTO: GEMINI
-    // =========================
+    // =====================================================================
+    // 8. CHAMADA GEMINI
+    // =====================================================================
     if (modelo === "gemini") {
+
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
         {
@@ -64,18 +123,17 @@ app.post("/analisar", async (req, res) => {
               {
                 parts: [
                   {
-                    text: `Responda SOMENTE em JSON:\n{\n  "tipo": "",\n  "risco": "",\n  "acoes": [],\n  "justificativa": ""\n}\n\nOCORRÊNCIA: ${texto}`
+                    text: `${SYSTEM_PROMPT}\n\nOCORRÊNCIA: ${texto}`
                   }
                 ]
               }
-            ],
-            generationConfig: { responseMimeType: "application/json" }
+            ]
           })
         }
       );
 
       if (!response.ok) {
-        console.error("Erro Gemini:", response.status);
+        console.error("❌ Erro Gemini:", response.status);
         return res.status(500).json({ erro: "Falha na API Gemini." });
       }
 
@@ -83,10 +141,11 @@ app.post("/analisar", async (req, res) => {
       resultado = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     }
 
-    // =========================
-    // ROTEAMENTO: AZURE
-    // =========================
+    // =====================================================================
+    // 9. CHAMADA AZURE (CORRIGIDA)
+    // =====================================================================
     else if (modelo === "azure") {
+
       const response = await fetch(
         `${AZURE_ENDPOINT}/openai/deployments/${AZURE_DEPLOYMENT}/chat/completions?api-version=2024-02-15-preview`,
         {
@@ -99,56 +158,72 @@ app.post("/analisar", async (req, res) => {
             messages: [
               {
                 role: "system",
-                content: `Você é um agente de segurança pública.\nResponda EXCLUSIVAMENTE em JSON válido:\n{\n  "tipo": "",\n  "risco": "",\n  "acoes": [],\n  "justificativa": ""\n}`
+                content: SYSTEM_PROMPT
               },
               {
                 role: "user",
                 content: texto
               }
-            ]
-            // REMOVIDO: response_format: { type: "json_object" }
-            // Muitos deployments acusam Erro 400 com essa flag. O prompt do sistema já garante o formato.
+            ],
+            temperature: 0.2 // 🔥 Reduz variação → melhora consistência
           })
         }
       );
 
-      // Se a requisição falhar (ex: chave vencida), captura o erro exato para vermos no log
       if (!response.ok) {
-        // [NOVO RASTREADOR DE ERROS] Lê a mensagem real que a Microsoft devolveu
         const errorBody = await response.text();
-        console.error("❌ Erro Crítico Azure - Status:", response.status);
-        console.error("❌ Motivo dado pela Azure:", errorBody);
-        
-        return res.status(500).json({ erro: "Falha na comunicação com a API Azure. Verifique os logs do Docker." });
+        console.error("❌ Erro Azure:", response.status);
+        console.error("❌ Detalhes:", errorBody);
+
+        return res.status(500).json({
+          erro: "Falha na API Azure"
+        });
       }
 
       const data = await response.json();
       resultado = data?.choices?.[0]?.message?.content;
     }
 
-    // Modelo inválido
     else {
-      return res.status(400).json({ erro: "Modelo selecionado é inválido." });
+      return res.status(400).json({
+        erro: "Modelo inválido."
+      });
     }
 
-    // =========================================================
-    // PARSE DO JSON (Tratamento Universal)
-    // =========================================================
+    // =====================================================================
+    // 10. PARSER JSON (CRÍTICO)
+    // =====================================================================
     try {
-      const resultadoObjeto = typeof resultado === 'string' ? JSON.parse(resultado) : resultado;
+      const resultadoObjeto =
+        typeof resultado === "string"
+          ? JSON.parse(resultado)
+          : resultado;
+
       res.json({ result: resultadoObjeto });
+
     } catch (parseErro) {
-      console.error("Falha ao fazer parse do JSON:", parseErro);
-      res.json({ result: resultado });
+      console.error("❌ Erro ao converter JSON:", parseErro);
+
+      res.json({
+        fallback_text: resultado,
+        erro: "Resposta não veio em JSON válido"
+      });
     }
 
   } catch (erro) {
-    console.error("Erro interno:", erro);
-    res.status(500).json({ erro: "Erro interno do servidor." });
+    console.error("🔥 Erro interno:", erro);
+
+    res.status(500).json({
+      erro: "Erro interno do servidor."
+    });
   }
 });
 
+// ==============================================================================
+// 11. INICIALIZAÇÃO DO SERVIDOR
+// ==============================================================================
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
-  console.log(`🚀 Sentinel Backend operacional na porta ${PORT}`);
+  console.log(`🚀 Sentinel rodando na porta ${PORT}`);
 });

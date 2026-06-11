@@ -1,212 +1,68 @@
-# 🛡️ Sentinel AI
+# 🛡️ Sentinel AI - Reasoning Multi-Agent System
 
-> From raw incident description to structured operational decision support — in seconds.
-
-Sistema inteligente de análise de ocorrências que transforma linguagem natural em decisões operacionais estruturadas, utilizando múltiplos modelos de Inteligência Artificial.
+> Transforming natural language into structured, responsible operational decisions using multi-agent reasoning.
 
 ---
 
-## 🌐 Acesso Online
+## 🌐 Live Demo
 
-A aplicação já está disponível publicamente:
-
-https://sentinel-ai-agents-league.onrender.com
+🔗 https://sentinel-ai-agents-league.onrender.com
 
 ---
 
-## 🎯 Visão Geral
+## 🎯 Overview
 
-O Sentinel AI é um agente inteligente capaz de interpretar ocorrências textuais e gerar, em tempo real:
+Sentinel AI is a **multi-agent reasoning system** designed to transform real-world incident descriptions into **structured, safe, and operationally sound decisions**.
 
-- Classificação de risco
-- Ações recomendadas
-- Justificativa técnica estruturada
-- Respostas padronizadas em JSON
+The system goes beyond simple classification by applying:
 
-O sistema atua como um **apoio à decisão**, não apenas como um gerador de respostas.
-
----
-
-## 🚀 Funcionalidades
-
-- Entrada de ocorrências em linguagem natural
-- Classificação automática de risco (Baixo, Médio, Alto, Altíssimo)
-- Geração de ações com escalonamento progressivo
-- Justificativa baseada em análise contextual
-- Interface visual interativa
-- Integração com múltiplos modelos de IA:
-  - Google Gemini
-  - Microsoft Azure OpenAI
-- Execução em tempo real
-- Retorno estruturado em JSON
+- Contextual understanding  
+- Risk evaluation  
+- Progressive decision-making  
+- Responsible AI principles  
 
 ---
 
-## 🧠 Arquitetura
+## 🧠 Core Concept: Multi-Agent Reasoning
 
-Frontend (HTML + CSS + JavaScript)  
-↓  
-Backend (Node.js + Express)  
-↓  
-Integração com IA  
-→ Google Gemini  
-→ Azure OpenAI  
-↓  
-Containerização  
-→ Docker  
-↓  
-Deploy  
-→ Render (Cloud)
+The system simulates a **multi-agent architecture** composed of three stages:
 
----
+1. **Planning Agent**
+   - Understands and structures the incident
 
-## ⚙️ Tecnologias Utilizadas
+2. **Analysis Agent**
+   - Evaluates risk, context, and impact
 
-- Node.js
-- Express
-- JavaScript
-- HTML5
-- CSS3
-- Docker
-- Google Gemini API
-- Azure OpenAI
-- Dotenv
+3. **Decision Agent**
+   - Generates proportional and structured actions
+
+This ensures **step-by-step reasoning instead of instant responses**.
 
 ---
 
-## 📦 Estrutura do Projeto
+## ⚙️ How It Works
 
-sentinel-ai-agents-league/  
-├── backend/  
-│   └── server.js  
-├── frontend/  
-│   ├── index.html  
-│   ├── script.js  
-│   └── style.css  
-├── Dockerfile  
-├── docker-compose.yml  
-├── package.json  
-├── .env (apenas local)  
-└── README.md  
+Input (natural language)  
+⬇  
+Multi-Agent Reasoning Loop  
+⬇  
+Structured JSON Output  
 
----
+Each response is generated through:
 
-## 🔐 Variáveis de Ambiente
-
-Arquivo `.env` local:
-
-GEMINI_KEY=sua_chave_gemini  
-AZURE_KEY=sua_chave_azure  
-
-⚠️ Nunca versionar esse arquivo.
-
-No ambiente de produção (Render), as variáveis são configuradas diretamente no painel.
+- Context interpretation  
+- Risk classification  
+- Progressive escalation logic  
+- Justified decision-making  
 
 ---
 
-## ▶️ Execução Local
+## 📦 Output Format (Strict JSON)
 
-### Backend
-
-cd backend  
-npm install  
-node server.js  
-
-Servidor:
-
-http://localhost:3000  
-
----
-
-### Frontend
-
-Abrir diretamente:
-
-frontend/index.html  
-
-ou usar Live Server.
-
----
-
-## 🐳 Execução com Docker
-
-docker-compose up --build  
-
----
-
-## 🧪 Exemplo de Uso
-
-Entrada:
-
-suspeitos armados em escola  
-
-Saída:
-
+```json
 {
-  "tipo": "Ocorrência com suspeitos armados",
-  "risco": "Alto",
-  "acoes": [
-    "Avaliação inicial",
-    "Presença preventiva",
-    "Isolamento do local",
-    "Negociação",
-    "Acionamento de unidades especializadas"
-  ],
-  "justificativa": "Risco elevado à vida exige resposta escalonada e controlada."
+  "tipo": "",
+  "risco": "",
+  "acoes": [],
+  "justificativa": ""
 }
-
----
-
-## 🎯 Diferenciais
-
-- Transformação de texto em decisão operacional
-- Estrutura de escalonamento progressivo
-- Resposta padronizada e reutilizável (JSON)
-- Multi-model AI (resiliência e flexibilidade)
-- Arquitetura completa (frontend + backend + cloud)
-- Deploy real em ambiente de produção
-
----
-
-## 📌 Aplicações
-
-- Centros de comando e controle
-- Segurança pública
-- Atendimento emergencial
-- Treinamento e simulações
-- Sistemas de apoio à decisão
-
----
-
-## 🏆 Status do Projeto
-
-- Funcional
-- Online
-- Integrado com IA
-- Containerizado com Docker
-- Deploy em nuvem concluído
-- Pronto para demonstração
-
----
-
-## 🚀 Roadmap
-
-- Dashboard com métricas
-- Histórico de ocorrências
-- Geolocalização
-- Interface mobile
-- API pública documentada
-- Comparação entre modelos de IA
-
----
-
-## 👨‍💻 Autor
-
-Jonas Henrique Spindler
-
----
-
-## 💥 Destaque
-
-The system does not automate force — it supports responsible, structured decision-making.
-``
