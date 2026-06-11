@@ -1,36 +1,8 @@
 <!DOCTYPE html>
-<html lang="pt-BR"> <!-- Define idioma da página (boa prática para acessibilidade e SEO) -->
+  <p>Agente Inteligente de Análise de Ocorrências</p><html lang="pt-BR">
 
-<head>
-  <!-- Define padrão de caracteres (permite acentos corretamente) -->
-  <meta charset="UTF-8">
-
-  <!-- Responsividade para funcionar bem em notebook/celular -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- Título da página (aparece na aba do navegador) -->
-  <title>Sentinel AI</title>
-
-  <!-- Importação do CSS -->
-  <link rel="stylesheet" href="style.css">
-</head>
-
-<body>
-
-  <!-- ========================= -->
-  <!-- TÍTULO DO SISTEMA -->
-  <!-- ========================= -->
-  <h1>🛡️ Sentinel AI</h1>
-
-  <!-- Descrição do sistema -->
-  <p>Agente Inteligente de Análise de Ocorrências</p>
-
-
-  <!-- ========================= -->
-  <!-- SELETOR DE IA (NOVO 🚀) -->
-  <!-- ========================= -->
+  <!-- SELETOR -->
   <label for="modelo">Escolha a IA:</label><br>
-
   <select id="modelo">
     <option value="gemini">Google Gemini</option>
     <option value="azure">Microsoft Azure AI</option>
@@ -38,41 +10,39 @@
 
   <br><br>
 
-
-  <!-- ========================= -->
-  <!-- CAMPO DE ENTRADA -->
-  <!-- ========================= -->
-  <!-- Usuário descreve a ocorrência -->
-  <textarea 
-    id="input" 
-    placeholder="Descreva a ocorrência aqui...">
-  </textarea>
+  <!-- INPUT -->
+  <textarea
+    id="input"
+    placeholder="Descreva a ocorrência aqui..."
+  ></textarea>
 
   <br><br>
 
-
-  <!-- ========================= -->
-  <!-- BOTÃO DE AÇÃO -->
-  <!-- ========================= -->
-  <!-- Chama a função analisar() do script.js -->
+  <!-- BOTÃO -->
   <button onclick="analisar()">
     Analisar
   </button>
 
+  <br><br>
 
-  <!-- ========================= -->
-  <!-- ÁREA DE RESULTADO -->
-  <!-- ========================= -->
-  <!-- <pre> mantém formatação do JSON -->
-  <pre id="saida">
-Resultado aparecerá aqui...
-  </pre>
+  <!-- RESULTADO -->
+  <div id="saida">
+    Resultado aparecerá aqui...
+  </div>
 
-
-  <!-- ========================= -->
-  <!-- SCRIPT JAVASCRIPT -->
-  <!-- ========================= -->
+  <!-- SCRIPT -->
   <script src="script.js"></script>
 
 </body>
 </html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sentinel AI</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <h1>🛡️ Sentinel AI</h1>
