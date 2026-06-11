@@ -1,7 +1,9 @@
-// ===============================
-// CARREGA VARIÁVEIS DE AMBIENTE
-// ===============================
-require('dotenv').config();
+// ==============================================================================
+// 1. CARREGAMENTO DE VARIÁVEIS DE AMBIENTE
+// ==============================================================================
+// Lê o arquivo .env durante o desenvolvimento local. 
+// No Render, as variáveis configuradas no painel sobrescrevem isso automaticamente.
+require("dotenv").config();
 
 // ===============================
 // IMPORTAÇÕES E CONFIGURAÇÕES
@@ -110,6 +112,7 @@ app.post("/analisar", async (req, res) => {
         }
       );
 
+      // Se a requisição falhar (ex: chave vencida), captura o erro exato para vermos no log
       if (!response.ok) {
         // [NOVO RASTREADOR DE ERROS] Lê a mensagem real que a Microsoft devolveu
         const errorBody = await response.text();
